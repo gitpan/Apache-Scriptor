@@ -1,0 +1,205 @@
+<HTML>
+<HEAD>
+<TITLE>Apache::Scriptor - Support for Apache handlers conveyor.</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<BODY>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#features">FEATURES</A></LI>
+	<LI><A HREF="#example">EXAMPLE</A></LI>
+	<LI><A HREF="#overview">OVERVIEW</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#author">AUTHOR</A></LI>
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P>Apache::Scriptor - Support for Apache handlers conveyor.</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<P>Synopsis are not so easy as in other modules, that's why let's see example below.</P>
+<P>
+<HR>
+<H1><A NAME="features">FEATURES</A></H1>
+<UL>
+<LI>
+Uses ONLY perl binary.
+<P></P>
+<LI>
+Helps to organize the Apache handler conveyor. That means you can redirect the output from one handler to another handler.
+<P></P>
+<LI>
+Supports non-existance URL handling and 404 Error processing.
+<P></P>
+<LI>
+Uses <CODE>.htaccess</CODE> files to configure.
+<P></P></UL>
+<P>
+<HR>
+<H1><A NAME="example">EXAMPLE</A></H1>
+<PRE>
+  ### Consider the server structure:
+  ### /
+  ###   _Kernel/
+  ###      handlers/
+  ###        s_copyright.pl
+  ###        ...
+  ###      .htaccess
+  ###      Scriptor.pl
+  ###   .htaccess
+  ###   test.htm</PRE>
+<PRE>
+  ### File /.htaccess:
+    # Setting up the conveyor for .htm:
+    # &quot;input&quot; =&gt; eperl =&gt; s_copyright =&gt; &quot;output&quot; 
+    Action     perl &quot;/_Kernel/Scriptor.pl&quot;
+    AddHandler perl .htm
+    Action     s_copyright &quot;/_Kernel/Scriptor.pl&quot;
+    AddHandler s_copyright .htm</PRE>
+<PRE>
+  ### File /_Kernel/.htaccess:
+    # Enables Scriptor.pl as perl executable
+    Options ExecCGI
+    AddHandler cgi-script .pl</PRE>
+<PRE>
+  ### File /_Kernel/Scriptor.pl:
+    #!/usr/local/bin/perl -w 
+    use FindBin qw($Bin);          # текущая директория
+    my $HandDir=&quot;$Bin/handlers&quot;;   # директория с обработчиками
+    # This is run not as CGI-script?
+    if(!$ENV{DOCUMENT_ROOT} || !$ENV{SCRIPT_NAME} || !$ENV{SERVER_NAME}) {
+      print &quot;This script has to be used only as Apache handler!\n\n&quot;;
+      exit;
+    }
+    # Non-Apache-handler run?
+    if(!$ENV{REDIRECT_URL}) {
+      print &quot;Location: http&quot;.&quot;://$ENV{SERVER_NAME}/\n\n&quot;;
+      exit;
+    }
+    require Apache::Scriptor;
+    my $Scr=Apache::Scriptor-&gt;new();
+    # Setting up the handlers' directory.
+    $Scr-&gt;set_handlers_dir($HandDir);
+    # Go on!
+    $Scr-&gt;run_uri($ENV{REQUEST_URI},$ENV{PATH_TRANSLATED});</PRE>
+<PRE>
+  ### File /_Kernel/handlers/s_copyright.pl:
+    sub s_copyright
+    {  my ($input)=@_;
+       -f $ENV{SCRIPT_FILENAME} or return -1; # Error indicator
+       # Adds the comment string BEFORE all the output.
+       print '&lt;!-- Copyright (C) by Dmitry Koteroff (koteroff@cpan.org) --&gt;\n'.$input;
+       return 0; # OK
+    }</PRE>
+<PRE>
+  ### File /test.htm:
+    print &quot;&lt;html&gt;&lt;body&gt;Hello, world!&lt;/body&gt;&lt;/html&gt;&quot;;</PRE>
+<PRE>
+  ### Then, user enters the URL: <A HREF="http://ourhost.com/test.htm">http://ourhost.com/test.htm</A>.
+  ### The result will be:
+    Content-type: text/html\n\n
+    &lt;!-- Copyright (C) by Dmitry Koteroff (koteroff@cpan.org) --&gt;\n
+    Hello, world!</PRE>
+<P>
+<HR>
+<H1><A NAME="overview">OVERVIEW</A></H1>
+<P>This module is used to handle all the requests through the Perl script 
+(such as <CODE>/_Kernel/Scriptor.pl</CODE>, see above). This script is just calling
+the handlers conveyor for the specified file types.</P>
+<P>When you place directives like these in your <CODE>.htaccess</CODE> file:</P>
+<PRE>
+  Action     s_copyright &quot;/_Kernel/Scriptor.pl&quot;
+  AddHandler s_copyright .htm</PRE>
+<P>Apache sees that, to process <CODE>.htm</CODE> document, <CODE>/_Kernel/Scriptor.pl</CODE> handler
+should be used. Then, Apache::Scriptor starts, reads this <CODE>.htaccess</CODE> and remembers
+the handler name for <CODE>.htm</CODE> document: it is <CODE>s_copyright</CODE>. Apache::Scriptor searches 
+for <CODE>/_Kernel/handlers/s_copyright.pl</CODE>, trying to find the subroutine with the same name:
+<CODE>s_copyright()</CODE>. Then it runs that and passes the document body, returned from the previous 
+handler, as the first parameter.</P>
+<P>How to start the new conveyor for extension <CODE>.html</CODE>, for example? It's easy: you
+place some Action-AddHandler pairs into the <CODE>.htaccess</CODE> file. You must choose
+the name for these handlers corresponding to the Scriptor handler file names 
+(placed in <CODE>/_Kernel/handlers</CODE>). Apache does NOT care about these names, but 
+Apache::Scriptor does. See example above (it uses two handlers: built-in <CODE>perl</CODE> and user-defined <CODE>s_copyright</CODE>).</P>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<DL>
+<DT><STRONG><A NAME="item_require_Apache%3A%3AScriptor"><CODE>require Apache::Scriptor</CODE></A></STRONG><BR>
+<DD>
+Loads the module core.
+<P></P>
+<DT><STRONG><A NAME="item_Apache%3A%3AScriptor%27new"><CODE>Apache::Scriptor'new</CODE></A></STRONG><BR>
+<DD>
+Creates the new Apache::Scriptor object. Then you may set up its 
+properties and run methods (see below).
+<P></P>
+<DT><STRONG><A NAME="item_set_handlers_dir"><CODE>$obj'set_handlers_dir($dir)</CODE></A></STRONG><BR>
+<DD>
+Sets up the directory, which is used to search for handlers.
+<P></P>
+<DT><STRONG><A NAME="item_run_uri"><CODE>$obj'run_uri($uri [, $filename])</CODE></A></STRONG><BR>
+<DD>
+Runs the specified URI through the handlers conveyer and prints out 
+the result. If <CODE>$filename</CODE> parameter is specified, module does not
+try to convert URL to filename and uses it directly.
+<P></P>
+<DT><STRONG><A NAME="item_addhandler"><CODE>$obj'addhandler(ext1=</CODE>[h1, h2,...], ext2=&gt;[...])&gt;</A></STRONG><BR>
+<DD>
+Manually sets up the handlers' conveyor for document extensions. 
+Values of <CODE>h1</CODE>, <CODE>h2</CODE> etc. could be code references or 
+late-loadable function names (as while parsing the <CODE>.htaccess</CODE> file).
+<P></P>
+<DT><STRONG><A NAME="item_pushhandler"><CODE>$obj'pushhandler($ext, $handler)</CODE></A></STRONG><BR>
+<DD>
+Adds the handler <CODE>$handler</CODE> th the end of the conveyor for extension <CODE>$ext</CODE>.
+<P></P>
+<DT><STRONG><A NAME="item_removehandler"><CODE>$obj'removehandler($ext)</CODE></A></STRONG><BR>
+<DD>
+Removes all the handlers for extension <CODE>$ext</CODE>.
+<P></P>
+<DT><STRONG><A NAME="item_set_404_url"><CODE>$obj'set_404_url($url)</CODE></A></STRONG><BR>
+<DD>
+Sets up the redirect address for 404 error. By default, this value is 
+bringing up from <CODE>.htaccess</CODE> files.
+<P></P>
+<DT><STRONG><A NAME="item_set_htaccess_name"><CODE>$obj'set_htaccess_name($name)</CODE></A></STRONG><BR>
+<DD>
+Tells Apache::Scriptor object then Apache user configuration file is called <CODE>$name</CODE>
+(by default <CODE>$name=&quot;.htaccess&quot;</CODE>).
+<P></P>
+<DT><STRONG><A NAME="item_process_htaccess"><CODE>$obj'process_htaccess($filename)</CODE></A></STRONG><BR>
+<DD>
+Processes all the directives in the <CODE>.htaccess</CODE> file <CODE>$filename</CODE> and adds
+all the found handlers th the object.
+<P></P>
+<DT><STRONG><A NAME="item_package_Apache%3A%3AScriptor%3A%3AHandlers"><CODE>package Apache::Scriptor::Handlers</CODE></A></STRONG><BR>
+<DD>
+This package holds ALL the handler subroutines. You can place 
+some user-defined handlers into it before loading the module to 
+avoid their late loading from handlers directory.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="author">AUTHOR</A></H1>
+<P>Dmitry Koteroff &lt;<A HREF="mailto:koteroff@cpan.org">koteroff@cpan.org</A>&gt;, <A HREF="http://www.dklab.ru">http://www.dklab.ru</A></P>
+<P>
+<HR>
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P><CODE>CGI::WebOut</CODE>.</P>
+
+</BODY>
+
+</HTML>
