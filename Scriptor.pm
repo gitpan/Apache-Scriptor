@@ -6,24 +6,24 @@ use Cwd;
 # constructor new()
 # Создает новый Apache::Scriptor-объект.
 sub new
-{	my ($class)=@_;
-	my $this = {
-		Handlers        => {},
-		HandDir         => ".",
-		htaccess        => ".htaccess",
-		# Запоминаем, какой запрос в действительности был выполнен, чтобы
-		# потом искать его в htaccess-ах.
-		self_scriptname => $ENV{SCRIPT_NAME}
-	};
-	return bless($this,$class);
+{ my ($class)=@_;
+  my $this = {
+    Handlers        => {},
+    HandDir         => ".",
+    htaccess        => ".htaccess",
+    # Запоминаем, какой запрос в действительности был выполнен, чтобы
+    # потом искать его в htaccess-ах.
+    self_scriptname => $ENV{SCRIPT_NAME}
+  };
+  return bless($this,$class);
 }
 
 
 # void set_handlers_dir(string $dir)
 # Устанавливает директорию для поиска обработчиков.
 sub set_handlers_dir
-{	my ($this,$dir)=@_;
-	$this->{HandDir}=$dir;
+{ my ($this,$dir)=@_;
+  $this->{HandDir}=$dir;
 }
 
 # void addhandler(ext1=>[h1, h2,...], ext2=>[...])
@@ -34,100 +34,100 @@ sub set_handlers_dir
 # имя которого совпадает с именем обработчика с расширением ".pl" из
 # директории, которая задана вызовом set_handlers_dir().
 sub addhandler
-{	my ($this,%hands)=@_;
-	%{$this->{Handlers}}=(%{$this->{Handlers}},%hands);
-	return;
+{ my ($this,%hands)=@_;
+  %{$this->{Handlers}}=(%{$this->{Handlers}},%hands);
+  return;
 }
 
 # void pushhandler(string ext, func &func)
 # Добавляет обработчик для расширения ext в конец списка обработчиков.
 sub pushhandler
-{	my ($this,$ext,$func)=@_;
-	$this->{Handlers}{$ext}||=[];
-	push(@{$this->{Handlers}{$ext}},$func);
-	return;
+{ my ($this,$ext,$func)=@_;
+  $this->{Handlers}{$ext}||=[];
+  push(@{$this->{Handlers}{$ext}},$func);
+  return;
 }
 
 # void removehandler(ext1, ext2, ...)
 # Удаляет обработчик(и) для расширений ext1 и ext2.
 sub removehandler
-{	my ($this,@ext)=@_;
-	foreach (@ext) { delete $this->{Handlers}{$_} }
-	return;
+{ my ($this,@ext)=@_;
+  foreach (@ext) { delete $this->{Handlers}{$_} }
+  return;
 }
 
 # void set_404_url($url)
 # Устанавливает адрес страницы 404-й ошибки, на которую будет произведен 
 # редирект, если файл не найден.
 sub set_404_url
-{	my ($th,$url)=@_;
-	$th->{404}=$url;
+{ my ($th,$url)=@_;
+  $th->{404}=$url;
 }
 
 # void set_htaccess_name($name)
 # Устанавливает имя htaccess-файла. По умолчанию это .htaccess.
 sub set_htaccess_name
-{	my ($th,$htaccess)=@_;
-	$th->{htaccess}=$htaccess;
+{ my ($th,$htaccess)=@_;
+  $th->{htaccess}=$htaccess;
 }
 
 sub process_htaccess
-{	my ($th,$fname)=@_;
-	open(local *F,$fname) or return;
-	# Сначала собираем все директивы из .htaccess
-	my %Action=();
-	my @AddHandler=();
-	while(!eof(F)) {
-		my $s=<F>; $s=~s/^\s+|#.*|\s+$//sg; next if $s eq "";
-		# Директива Action
-		if($s=~m/Action\s+([\w\d-]+)\s*"?([^"]+)"?/si) {
-			$Action{$1}=1 if $2 eq $th->{self_scriptname};
-		}
-		# Директива AddHandler
-		if($s=~m/AddHandler\s+([\w\d-]+)\s*(.+)/si) {
-			push @AddHandler, [ $1, [ map { s/^\s*\.?|\s+$//sg; $_?($_):() } split /\s+/, $2 ] ];
-		}
-		# Директива ErrorDocument 404
-		if($s=~/ErrorDocument\s+404\s+"?([^"]+)"?/si) {
-			$th->set_404_url($1);
-		}
-	}
-	# Затем добавляем цепочки обработчиков
-	my %ProcessedExt=();
-	foreach my $info (@AddHandler) {
-		my ($hand,$ext)=@$info;
-		# Сразу отметаем обработчики, которые НЕ указывают на Apache::Scriptor.
-		# Мы не могли этого сделать в верхнем цикле, потопму что директивы
-		# Action и AddHandler могут идти не по порядку.
-		next if !$Action{$hand};
-		# Добавляем для каждого расширения обработчик в цепочку
-		foreach my $ext (@$ext) {
-			# Если это расширение встречается в текущем htaccess-файле 
-			# впервые, это значит, что начата очередная цепочка обработчиков.
-			# В этом случае нужно удалить уже имеющуюся цепочку.
-			if(!$ProcessedExt{$ext}) {
-				$th->removehandler($ext);
-				$ProcessedExt{$ext}=1;
-			}
-			# Затем спокойно вызываем pushhandler()
-			$th->pushhandler($ext,$hand);
-		}
-	}
+{ my ($th,$fname)=@_;
+  open(local *F,$fname) or return;
+  # Сначала собираем все директивы из .htaccess
+  my %Action=();
+  my @AddHandler=();
+  while(!eof(F)) {
+    my $s=<F>; $s=~s/^\s+|#.*|\s+$//sg; next if $s eq "";
+    # Директива Action
+    if($s=~m/Action\s+([\w\d-]+)\s*"?([^"]+)"?/si) {
+      $Action{$1}=1 if $2 eq $th->{self_scriptname};
+    }
+    # Директива AddHandler
+    if($s=~m/AddHandler\s+([\w\d-]+)\s*(.+)/si) {
+      push @AddHandler, [ $1, [ map { s/^\s*\.?|\s+$//sg; $_?($_):() } split /\s+/, $2 ] ];
+    }
+    # Директива ErrorDocument 404
+    if($s=~/ErrorDocument\s+404\s+"?([^"]+)"?/si) {
+      $th->set_404_url($1);
+    }
+  }
+  # Затем добавляем цепочки обработчиков
+  my %ProcessedExt=();
+  foreach my $info (@AddHandler) {
+    my ($hand,$ext)=@$info;
+    # Сразу отметаем обработчики, которые НЕ указывают на Apache::Scriptor.
+    # Мы не могли этого сделать в верхнем цикле, потопму что директивы
+    # Action и AddHandler могут идти не по порядку.
+    next if !$Action{$hand};
+    # Добавляем для каждого расширения обработчик в цепочку
+    foreach my $ext (@$ext) {
+      # Если это расширение встречается в текущем htaccess-файле 
+      # впервые, это значит, что начата очередная цепочка обработчиков.
+      # В этом случае нужно удалить уже имеющуюся цепочку.
+      if(!$ProcessedExt{$ext}) {
+        $th->removehandler($ext);
+        $ProcessedExt{$ext}=1;
+      }
+      # Затем спокойно вызываем pushhandler()
+      $th->pushhandler($ext,$hand);
+    }
+  }
 }
 
 sub process_htaccesses
-{	my ($th,$path)=@_;
-	# Сначала определяем все полные пути к htaccess-файлам
-	my @Hts=();
-	while($path=~m{[/\\]}) {
-		if(-d $path) {
-			my $ht="$path/$th->{htaccess}";
-			unshift(@Hts,$ht) if -f $ht;
-		}
-		$path=~s{[/\\][^/\\]*$}{}s;
-	}
-	# Затем обрабатываем эти файлы, начиная с самого корневого
-	map { $th->process_htaccess($_) } @Hts;
+{ my ($th,$path)=@_;
+  # Сначала определяем все полные пути к htaccess-файлам
+  my @Hts=();
+  while($path=~m{[/\\]}) {
+    if(-d $path) {
+      my $ht="$path/$th->{htaccess}";
+      unshift(@Hts,$ht) if -f $ht;
+    }
+    $path=~s{[/\\][^/\\]*$}{}s;
+  }
+  # Затем обрабатываем эти файлы, начиная с самого корневого
+  map { $th->process_htaccess($_) } @Hts;
 }
 
 # void run_uri(string $uri [,string $path_translated])
@@ -137,44 +137,44 @@ sub process_htaccesses
 # работает правильно - например, такая штука не пройдет, если директория была
 # заведена как Alias Apache).
 sub run_uri
-{	my ($this,$uri,$path)=@_;
-	Header("X-Powered-by: Apache::Scriptor v$VERSION. (C) dklab, 2004. koteroff\@cpan.org") if !$CopySend++;
+{ my ($this,$uri,$path)=@_;
+  Header("X-Powered-by: Apache::Scriptor v$VERSION. (C) Dmitry Koterov <koterov at cpan dot org>") if !$CopySend++;
 
-	# Теперь работаем с КОПИЕЙ объекта. Таким образом, дальнейшие вызовы
-	# process_htaccesses и т.д. не отразятся на общем состоянии объекта
-	# после окончания запроса.
-	local $this->{Handlers}={%{$this->{Handlers}}};
-	local $this->{404}=$this->{404};
+  # Теперь работаем с КОПИЕЙ объекта. Таким образом, дальнейшие вызовы
+  # process_htaccesses и т.д. не отразятся на общем состоянии объекта
+  # после окончания запроса.
+  local $this->{Handlers}={%{$this->{Handlers}}};
+  local $this->{404}=$this->{404};
 
-	# Разделяем на URL и QUERY_STRING
-	local ($ENV{SCRIPT_NAME},$q) = split /\?/, $uri, 2;
-	$ENV{QUERY_STRING}=defined $q? $q : "";
+  # Разделяем на URL и QUERY_STRING
+  local ($ENV{SCRIPT_NAME},$q) = split /\?/, $uri, 2;
+  $ENV{QUERY_STRING}=defined $q? $q : "";
 
-	# Вычисляем путь к файлу скрипта по URI
-	if(!$path) {
-		$path="$ENV{DOCUMENT_ROOT}$ENV{SCRIPT_NAME}";
-	}
+  # Вычисляем путь к файлу скрипта по URI
+  if(!$path) {
+    $path="$ENV{DOCUMENT_ROOT}$ENV{SCRIPT_NAME}";
+  }
 
-	# Готовим новые переменные окружения, чтобы скрыть Apache::Scriptor;
-	local $ENV{REQUEST_URI}     = $uri;
-	local $ENV{SCRIPT_FILENAME} = $path;
-	local $ENV{REDIRECT_URL};     delete($ENV{REDIRECT_URL});
-	local $ENV{REDIRECT_STATUS};  delete($ENV{REDIRECT_STATUS});
-	# Меняем текущую директорию.
-	my $MyDir=getcwd(); 
-	($MyDir) = $MyDir=~/(.*)/;
-	my ($dir) = $path; $dir=~s{(.)[/\\][^/\\]*$}{$1}sg;
+  # Готовим новые переменные окружения, чтобы скрыть Apache::Scriptor;
+  local $ENV{REQUEST_URI}     = $uri;
+  local $ENV{SCRIPT_FILENAME} = $path;
+  local $ENV{REDIRECT_URL};     delete($ENV{REDIRECT_URL});
+  local $ENV{REDIRECT_STATUS};  delete($ENV{REDIRECT_STATUS});
+  # Меняем текущую директорию.
+  my $MyDir=getcwd(); 
+  ($MyDir) = $MyDir=~/(.*)/;
+  my ($dir) = $path; $dir=~s{(.)[/\\][^/\\]*$}{$1}sg;
  
-	chdir($dir); getcwd(); # getcwd: Сбрасывает $ENV{PWD}. Нам это надо? Фиг знает...
-	# Обрабатываем файлы .htaccess.
-	$this->process_htaccesses($path);
+  chdir($dir); getcwd(); # getcwd: Сбрасывает $ENV{PWD}. Нам это надо? Фиг знает...
+  # Обрабатываем файлы .htaccess.
+  $this->process_htaccesses($path);
 
-	# Все. Теперь состояние переменных скрипта такое же, как у страницы,
-	# которая в дальнейшем получит управление. Запускаем обработчики.
-	$this->__run_handlers();
-	
-	# Восстанавливаем текущую директорию
-	chdir($MyDir); getcwd(); 
+  # Все. Теперь состояние переменных скрипта такое же, как у страницы,
+  # которая в дальнейшем получит управление. Запускаем обработчики.
+  $this->__run_handlers();
+  
+  # Восстанавливаем текущую директорию
+  chdir($MyDir); getcwd(); 
 }
 
 
@@ -183,62 +183,62 @@ sub run_uri
 # как после обячного запуска скрипта Апачем, и текущая директория соответствует
 # директории со страницей).
 sub __run_handlers
-{	my ($th)=@_;
-	# расширение файла
-	my ($ext)  = $ENV{SCRIPT_FILENAME}=~m|\.([^.]*)$|; if(!defined $ext) { $ext=""; }
+{ my ($th)=@_;
+  # расширение файла
+  my ($ext)  = $ENV{SCRIPT_FILENAME}=~m|\.([^.]*)$|; if(!defined $ext) { $ext=""; }
 
-	# выбираем список обработчиков для этого расширения
-	$th->{Handlers}{$ext} 
-		or die "$ENV{SCRIPT_NAME}: could not find handlers chain for extension \"$ext\"\n";
+  # выбираем список обработчиков для этого расширения
+  $th->{Handlers}{$ext} 
+    or die "$ENV{SCRIPT_NAME}: could not find handlers chain for extension \"$ext\"\n";
 
-	# входной буфер (вначале в нем содержимое файла, если доступно)
-	my $input="";
-	if(open(local *F, $ENV{SCRIPT_FILENAME})) { local ($/,$\); binmode(F); $input=<F>; }
+  # входной буфер (вначале в нем содержимое файла, если доступно)
+  my $input="";
+  if(open(local *F, $ENV{SCRIPT_FILENAME})) { local ($/,$\); binmode(F); $input=<F>; }
 
-	# проходимся по всем обработчикам
-	my $next=1; # номер следующего обработчика
-	my @hands=@{$th->{Handlers}{$ext}};
-	NoAutoflush() if @hands>1;
-	foreach my $hand (@hands)
-	{	# Объект перенаправления вывода. Если у нас всего один обработчик, то 
-		# перенаправлять вывод не потребуется. Иначе - потребуется, что и делается
-		my $OutObj=$hands[$next++]? CGI::WebOut->new : undef;
-		my $func=$hand; # указатель на функцию
-		# Проверяем - нужно ли загрузить обработчик?
-		if((ref($func)||"") ne "CODE") {
-			# переключаем пакет
-			package Apache::Scriptor::Handlers; 
-			# обработчика еще нет в этом пакете?
-			if(!*{$func}{CODE}) {
-				my $hname="$th->{HandDir}/$func.pl";
-				-f $hname or die "$ENV{SCRIPT_NAME}: could not load the file $hname for handler $hand\n";
-				do "$hname";
-				*{$func}{CODE} or die "$ENV{SCRIPT_NAME}: cannot find handler $hand in $hname after loading $hname\n";
-			}
-			# получаем указатель на функцию обработчика
-			local $this=$th;
-			$func=*{$func}{CODE};
-		}
-		# Функция обработчика принимает параметр: входной буфер.
-		# Ее задача - обработать его и, используя print, пропечатать результат.
-		# В случае ошибки (файл не найден) функция должна возвратить -1!
-		my $result=&$func($input);
-		if($result eq "-1") {
-			if($th->{404} && $th->{404} ne $th->{self_scriptname}) {
-				Redirect($th->{404});
-				exit;
-			} else {
-				die "$hand: could not find the file $ENV{SCRIPT_FILENAME}\n";
-			}
-		}
+  # проходимся по всем обработчикам
+  my $next=1; # номер следующего обработчика
+  my @hands=@{$th->{Handlers}{$ext}};
+  NoAutoflush() if @hands>1;
+  foreach my $hand (@hands)
+  { # Объект перенаправления вывода. Если у нас всего один обработчик, то 
+    # перенаправлять вывод не потребуется. Иначе - потребуется, что и делается
+    my $OutObj=$hands[$next++]? CGI::WebOut->new : undef;
+    my $func=$hand; # указатель на функцию
+    # Проверяем - нужно ли загрузить обработчик?
+    if((ref($func)||"") ne "CODE") {
+      # переключаем пакет
+      package Apache::Scriptor::Handlers; 
+      # обработчика еще нет в этом пакете?
+      if(!*{$func}{CODE}) {
+        my $hname="$th->{HandDir}/$func.pl";
+        -f $hname or die "$ENV{SCRIPT_NAME}: could not load the file $hname for handler $hand\n";
+        do "$hname";
+        *{$func}{CODE} or die "$ENV{SCRIPT_NAME}: cannot find handler $hand in $hname after loading $hname\n";
+      }
+      # получаем указатель на функцию обработчика
+      local $this=$th;
+      $func=*{$func}{CODE};
+    }
+    # Функция обработчика принимает параметр: входной буфер.
+    # Ее задача - обработать его и, используя print, пропечатать результат.
+    # В случае ошибки (файл не найден) функция должна возвратить -1!
+    my $result=&$func($input);
+    if($result eq "-1") {
+      if($th->{404} && $th->{404} ne $th->{self_scriptname}) {
+        Redirect($th->{404});
+        exit;
+      } else {
+        die "$hand: could not find the file $ENV{SCRIPT_FILENAME}\n";
+      }
+    }
 
-		# То, что получилось, кладем во входной буфер для следующего обработчика.
-		# Если вывод не перенаправлялся, то кладем туда "".
-		$input=$OutObj?$OutObj->buf:"";
-	}
-	# Окончательный результат окажется во входном буфере (как будто готовый для 
-	# следующего обработчика, которого нет). Его-то мы и выводим в браузер.
-	print $input;
+    # То, что получилось, кладем во входной буфер для следующего обработчика.
+    # Если вывод не перенаправлялся, то кладем туда "".
+    $input=$OutObj?$OutObj->buf:"";
+  }
+  # Окончательный результат окажется во входном буфере (как будто готовый для 
+  # следующего обработчика, которого нет). Его-то мы и выводим в браузер.
+  print $input;
 }
 
 
@@ -251,17 +251,17 @@ use CGI::WebOut;
 
 # Обработчик по умолчанию - просто выводит текст
 sub default
-{	my ($input,$fname)=@_;
-	-f $ENV{SCRIPT_FILENAME} or return -1;
-	CGI::WebOut::Header("Content-type: text/html");
-	print $input;
+{ my ($input,$fname)=@_;
+  -f $ENV{SCRIPT_FILENAME} or return -1;
+  CGI::WebOut::Header("Content-type: text/html");
+  print $input;
 }
 
 # Обработчик perl-скриптов. Подразумевается, что вывод скрипта идет через print.
 sub perl
-{	my ($input)=@_;
-	-f $ENV{SCRIPT_FILENAME} or return -1;
-	eval("\n#line 1 \"$ENV{SCRIPT_NAME}\"\npackage main; $input");
+{ my ($input)=@_;
+  -f $ENV{SCRIPT_FILENAME} or return -1;
+  eval("\n#line 1 \"$ENV{SCRIPT_NAME}\"\npackage main; $input");
 }
 
 return 1;
@@ -357,7 +357,7 @@ Uses C<.htaccess> files to configure.
     {  my ($input)=@_;
        -f $ENV{SCRIPT_FILENAME} or return -1; # Error indicator
        # Adds the comment string BEFORE all the output.
-       print '<!-- Copyright (C) by Dmitry Koteroff (koteroff@cpan.org) -->\n'.$input;
+       print '<!-- Copyright (C) by Dmitry Koterov (koterov at cpan dot org) -->\n'.$input;
        return 0; # OK
     }
 
@@ -367,7 +367,7 @@ Uses C<.htaccess> files to configure.
   ### Then, user enters the URL: http://ourhost.com/test.htm.
   ### The result will be:
     Content-type: text/html\n\n
-    <!-- Copyright (C) by Dmitry Koteroff (koteroff@cpan.org) -->\n
+    <!-- Copyright (C) by Dmitry Koterov (koterov at cpan dot org) -->\n
     Hello, world!
 
 =head1 OVERVIEW
@@ -456,7 +456,7 @@ avoid their late loading from handlers directory.
 
 =head1 AUTHOR
 
-Dmitry Koteroff <koteroff@cpan.org>, http://www.dklab.ru
+Dmitry Koterov <koterov at cpan dot org>, http://www.dklab.ru
 
 =head1 SEE ALSO
 
