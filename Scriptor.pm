@@ -1,5 +1,5 @@
 package Apache::Scriptor;
-$VERSION="1.20";
+$VERSION="1.21";
 use CGI::WebOut;
 use Cwd;
 

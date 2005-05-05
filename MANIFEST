@@ -3,5 +3,4 @@ Makefile.PL
 MANIFEST
 README
 Scriptor.pm
-Scriptor.htm
 test.pl
